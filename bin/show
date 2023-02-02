@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+dir="$1"
+#echo "$dir"
+
+files=$( find "$dir" -iname '*.Xresources' | grep '^.*\.Xresources$' )
+
+for file in $files; do
+  if [ -f "$file" ]; then
+    echo "Xresource color scheme from file: ${file}"
+    #echo ""
+    #bin/colortest-xresources -t "$file"
+    bin/colortest-xresources -d "$file"
+    #bin/colortest-xresources -f "$file"
+  fi
+  sleep 2
+done
