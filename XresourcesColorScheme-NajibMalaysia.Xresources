@@ -12,6 +12,9 @@
 ! To load a resource from file:
 !     $ xrdb <file>
 !
+! To merge a resource from file to current:
+!     $ xrdb -merge <file>
+!
 ! Example how to include Najib Xresources Color Scheme from ~/.Xresources:
 !     #include ".Xresources.d/XresourcesColorScheme-NajibMalaysia"
 !
