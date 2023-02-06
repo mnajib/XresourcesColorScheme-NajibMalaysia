@@ -18,12 +18,15 @@ colorNames[1]="DRed   "
 #colorCodes[1]="cc0000"
 #colorCodes[1]="b82214"
 #colorCodes[1]="cc1100"
-colorCodes[1]="c7002e"
+colorCodes[1]="c7002e"  # <--- Najib's fav.
+#colorCodes[1]="870000"
+#colorCodes[1]="af0000" # <--- Najib's fav. ??
 colorNames[9]="LRed   "
 #colorCodes[9]="ff4c4c"
 #colorCodes[9]="ff4d4d"
 #colorCodes[9]="fe4534"
-colorCodes[9]="fe5748"
+colorCodes[9]="fe5748"  # <--- Najib's fav.
+#colorCodes[9]="ff0000"
 
 colorNames[2]="DGreen "
 colorCodes[2]="009200"
@@ -34,7 +37,7 @@ colorCodes[10]="00d700"
 #colorCodes[10]="9bd770"
 
 colorNames[3]="DYellow"
-colorCodes[3]="aa8800"
+colorCodes[3]="aa8800"  # <--- Najib's fav
 #colorCodes[3]="b8b814"
 #colorCodes[3]="c3b72c"
 colorNames[11]="LYellow"
@@ -60,6 +63,9 @@ colorNames[7]="DWhite "
 colorCodes[7]="afafaf"
 colorNames[15]="LWhite "
 colorCodes[15]="ffffff"
+
+declare -a COLORLIST
+COLORLIST=( 2 10 3 11 1 9 5 13 4 12 6 14 15 7 8 0 )
 
 #------------------------------------------------------------------------------
 function color {
@@ -159,6 +165,13 @@ function tohex {
 #    tohex ${i}
 #done
 
+function getColorsFromXresourcesFile {
+  local f="$1"
+  local fileColors=( )
+  readarray -t fileColors < <( cat "$f" | grep '\*.*color.*\:.*#' | grep -v '^!' | sed 's/^.*color//' | sed 's/**://' | sort -n | awk '{print $2}' )
+  echo ${fileColors[@]}
+}
+
 #------------------------------------------------------------------------------
 function printCurrentColorTall {
   echo "Print Current Color"
@@ -174,7 +187,7 @@ function printTestColorWide {
   tput sgr0
   echo -en "      FG:"
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
       printf ' %7s ' ${XCOLORS[$h]}
   done
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -186,15 +199,14 @@ function printTestColorWide {
   done
   echo "┐"
 
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
-
+  for bg_color in ${COLORLIST[@]}; do
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     echo -en "│"
 
     bgc=$(fromhex ${colorCodes[$bg_color]})
     fg2c=$(fromhex ${colorCodes[$bg_color]})
 
-    for fg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+    for fg_color in ${COLORLIST[@]}; do
       fgc=$(fromhex ${colorCodes[$fg_color]})
       bg2c=$(fromhex ${colorCodes[$fg_color]})
       t="$bgc,$fgc"
@@ -219,7 +231,7 @@ function printTestColorWide {
   tput sgr0
   echo -en "         "
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
       printf ' %7s ' ${colorNames[$h]}
   done
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -234,10 +246,12 @@ function printTestColorWideWithFile {
   local f="$1"
   local colors=( )
   local systemColors=( )
+  local fileColors=( )
 
-  readarray -t colors < <( xrdb -n $f | grep '\*.*color.*\:.*#' | grep -v '^!' | sed 's/^.*color//' | sed 's/**://' | sort -n )
-  for (( i=0; i < ${#colors[@]}; i++ )); do
-    systemColors[$i]="$( echo "${colors[$i]}" | awk '{print $2}' )"
+  fileColors=( $( getColorsFromXresourcesFile "$f" ) )
+  for (( i=0; i < ${#fileColors[@]}; i++ )); do
+    #echo "bbb: fileColors[${i}]=${fileColors[$i]}"
+    systemColors[$i]="${fileColors[$i]}"
   done
 
   local XCOLORS=('color0 ' 'color1 ' 'color2 ' 'color3 ' 'color4 ' 'color5 ' 'color6 ' 'color7 ' 'color8 ' 'color9 ' 'color10' 'color11' 'color12' 'color13' 'color14' 'color15')
@@ -245,7 +259,7 @@ function printTestColorWideWithFile {
   tput sgr0
   echo -en "      FG:"
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
       printf ' %7s ' ${XCOLORS[$h]}
   done
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -257,14 +271,14 @@ function printTestColorWideWithFile {
   done
   echo "┐"
 
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
 
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     echo -en "│"
 
     bgc=$(fromhex ${systemColors[$bg_color]})
     fg2c=$bgc
-    for fg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+    for fg_color in ${COLORLIST[@]}; do
       fgc=$(fromhex ${systemColors[$fg_color]})
       bg2c=$fgc
       t="$bgc,$fgc"
@@ -289,7 +303,7 @@ function printTestColorWideWithFile {
   tput sgr0
   echo -en "         "
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
       printf ' %7s ' ${colorNames[$h]}
   done
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -330,10 +344,9 @@ function printCurrentColorWide {
   declare -a systemColors
 
   tput sgr0
-  #echo -en "         "
   echo -en "      FG:"
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
       printf ' %7s ' ${XCOLORS[$h]}
   done
   echo $(tput sgr0)
@@ -345,26 +358,18 @@ function printCurrentColorWide {
   done
   echo "┐"
 
-  #----------------------------------------------------------------------------
-  readarray -t colors < <( xrdb -query -all | grep '\*.*color.*\:.*#' | grep -v '^!' | sed 's/^.*color//' | sed 's/**://' | sort -n )
-  for (( i=0; i < ${#colors[@]}; i++ )); do
-    systemColors[$i]=$( echo "${colors[$i]}" | awk '{print $2}' )
-  done
-  #----------------------------------------------------------------------------
-
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
     set_background=$(tput setab $bg_color)
     set_foreground2=$(tput setaf $bg_color)
     printf ' %7s ' ${XCOLORS[$bg_color]}
     echo -en "│"
 
-    for fg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+    for fg_color in ${COLORLIST[@]}; do
       set_foreground=$(tput setaf $fg_color)
       set_background2=$(tput setab 0)
       echo -n $set_background$set_foreground # set color
       t="XXX,XXX"
       printf ' %7s ' "$t" # print text
-      #-----------------------------------------------------------
     done
 
     tput sgr0
@@ -385,7 +390,7 @@ function printCurrentColorWide {
   tput sgr0
   echo -en "         "
   echo -en " "
-  for h in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for h in ${COLORLIST[@]}; do
     printf ' %7s ' ${colorNames[$h]}
   done
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -420,6 +425,9 @@ function printTextWithColor {
 }
 
 function runTest {
+  echo "$@"
+  echo "$1 $2"
+
   #printf '\e[38;5;%d;48;5;%dm %7s \e[0m' 40 228 "Percubaan 1 2 3"
 
   #getSystemColor
@@ -450,17 +458,12 @@ function printCompactColorFromFile {
   local colors=( )
   local fileColors=( )
 
-  readarray -t colors < <( xrdb -n $f | grep '\*.*color.*\:.*#' | grep -v '^!' | sed 's/^.*color//' | sed 's/**://' | sort -n )
-  for (( i=0; i < ${#colors[@]}; i++ )); do
-    fileColors[$i]="$( echo "${colors[$i]}" | awk '{print $2}' )"
-  done
+  fileColors=( $( getColorsFromXresourcesFile "$f" ) )
 
   local XCOLORS=('color0 ' 'color1 ' 'color2 ' 'color3 ' 'color4 ' 'color5 ' 'color6 ' 'color7 ' 'color8 ' 'color9 ' 'color10' 'color11' 'color12' 'color13' 'color14' 'color15')
 
   tput sgr0
   echo ""
-  #echo "Color Scheme from file ${f}"
-  #echo ""
 
   echo -en "         "
   echo -en "         ┌"
@@ -471,7 +474,7 @@ function printCompactColorFromFile {
   echo "┐"
 
   local bg_color=0
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
 
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     printf ' %7s ' ${colorNames[$bg_color]}              # print text (black, black, red, red, ...) outside-right of the box
@@ -518,10 +521,7 @@ function printTestcolorfileVsSystemColor {
   local colors=( )
   local fileColors=( )
 
-  readarray -t colors < <( xrdb -n $f | grep '\*.*color.*\:.*#' | grep -v '^!' | sed 's/^.*color//' | sed 's/**://' | sort -n )
-  for (( i=0; i < ${#colors[@]}; i++ )); do
-    fileColors[$i]="$( echo "${colors[$i]}" | awk '{print $2}' )"
-  done
+  fileColors=( $( getColorsFromXresourcesFile "$f" ) )
 
   local XCOLORS=('color0 ' 'color1 ' 'color2 ' 'color3 ' 'color4 ' 'color5 ' 'color6 ' 'color7 ' 'color8 ' 'color9 ' 'color10' 'color11' 'color12' 'color13' 'color14' 'color15')
 
@@ -552,7 +552,7 @@ function printTestcolorfileVsSystemColor {
   #----------
 
   local bg_color=0
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
 
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     printf ' %7s ' ${colorNames[$bg_color]}              # print text (black, black, red, red, ...) outside-right of the box
@@ -666,7 +666,7 @@ function printNajibColors {
   echo "┐"
 
   local bg_color=0
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
 
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     printf ' %7s ' ${colorNames[$bg_color]}              # print text (black, black, red, red, ...) outside-right of the box
@@ -726,7 +726,7 @@ function printTestcolorVsSystemColor {
   echo "┐"
 
   local bg_color=0
-  for bg_color in 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; do
+  for bg_color in ${COLORLIST[@]}; do
 
     printf ' %7s ' ${XCOLORS[$bg_color]}            # print text (color0, color8, color1, ...) outside-left of the box
     printf ' %7s ' ${colorNames[$bg_color]}              # print text (black, black, red, red, ...) outside-right of the box
@@ -851,7 +851,23 @@ case $1 in
   --xxx|-x)
     runTest
     ;;
+  runTest)
+    "$@"
+    ;;
   *)
     printUsage
+    #"$@"
     ;;
 esac
+
+#------------------------------------------------------------------------------
+# Check if the function exists (bash specific)
+#if declare -f "$1" > /dev/null
+#then
+#  # call arguments verbatim
+#  "$@"
+#else
+#  # Show a helpful error
+#  echo "'$1' is not a known function name" >&2
+#  exit 1
+#fi
