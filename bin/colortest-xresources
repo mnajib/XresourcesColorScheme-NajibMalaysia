@@ -583,6 +583,8 @@ function printTestcolorfileVsSystemColor-TEST {
 }
 
 function printTestcolorfileVsSystemColor {
+  #local var1="$1"
+  #local var2="$2"
   local f="$1"
   local colors=( )
   local fileColors=( )
@@ -591,13 +593,23 @@ function printTestcolorfileVsSystemColor {
   #for (( i=0; i < ${#colors[@]}; i++ )); do
   #  fileColors[$i]="$( echo "${colors[$i]}" | awk '{print $2}' )"
   #done
-  fileColors=( $( getColorsFromXresourcesFile "$f" ) )
+  if [[ ! -z $1 && -r $1 ]]; then
+    fileColors=( $( getColorsFromXresourcesFile "$f" ) )
+  fi
+
+  if [[ ! -z $2 && -r $2 ]]; then
+    file2Colors=( $( getColorsFromXresourcesFile "$2" ) )
+  fi
 
   local XCOLORS=('color0 ' 'color1 ' 'color2 ' 'color3 ' 'color4 ' 'color5 ' 'color6 ' 'color7 ' 'color8 ' 'color9 ' 'color10' 'color11' 'color12' 'color13' 'color14' 'color15')
 
   tput sgr0
   echo ""
-  echo "                          Hardcoded Test Colors                  Current System Colors                        File Colors"
+  if [[ $# -eq 1 ]]; then
+    echo "                          Hardcoded Test Colors                  Current System Colors                        File Colors"
+  elif [[ $# -eq 2 ]]; then
+    echo "                          Hardcoded Test Colors                  Current System Colors                        File Colors                             File-2 Colors"
+  fi
 
   echo -en "         "
   #----------
@@ -618,7 +630,17 @@ function printTestcolorfileVsSystemColor {
   for j in {0..36}; do
     echo -en "─"
   done
-  echo "┐"
+  if [[ -z $2 ]]; then
+    echo "┐"
+  #----------
+  else
+    echo -en "┐"
+    echo -en " ┌"
+    for j in {0..36}; do
+      echo -en "─"
+    done
+    echo "┐"
+  fi
   #----------
 
   local bg_color=0
@@ -693,6 +715,28 @@ function printTestcolorfileVsSystemColor {
     echo -en "│ "
 
     #--------------------------------------------------------------------------
+    # Print Colors from 2nd file
+    #--------------------------------------------------------------------------
+    if [[ ! -z $2 ]]; then
+      echo -en "│ "
+
+      bgc=$(fromhex ${file2Colors[$bg_color]})
+      fg2c=$(fromhex ${file2Colors[$bg_color]})
+      for fg_color in 0 15; do
+        fgc=$(fromhex ${file2Colors[$fg_color]})
+        bg2c=$(fromhex ${file2Colors[$fg_color]})
+        t="$bgc,$fgc"
+        printf '\e[38;5;%d;48;5;%dm %7s \e[0m' $fgc $bgc "$t"
+      done
+
+      tput sgr0                                       # reset background and foreground color
+      printf '\e[38;5;%d;48;5;%dm %7s \e[0m' $bgc 15 "$t"
+      tt=${file2Colors[$bg_color]}
+      printf '\e[38;5;%dm %7s \e[0m' $fg2c ${tt}
+      echo -en "│ "
+    fi
+
+    #--------------------------------------------------------------------------
 
     echo $(tput sgr0)
   done
@@ -715,7 +759,18 @@ function printTestcolorfileVsSystemColor {
   for j in {0..36}; do
     echo -en "─"
   done
-  echo "┘"
+  #echo "┘"
+  if [[ -z $2 ]]; then
+    echo "┘"
+  #----------
+  else #elif [[ ! -z $2 ]]; then
+    echo -en "┘"
+    echo -en " └"
+    for j in {0..36}; do
+      echo -en "─"
+    done
+    echo "┘"
+  fi
   #----------
 
   echo $(tput sgr0)                                 # reset background and foreground color
@@ -870,14 +925,26 @@ function printUsage {
   echo "  colortest-xresources [option]"
   echo ""
   echo "Option:"
-  echo "  -h,--help            Print this help"
-  echo "  -t,--test            Print full (hardcoded) test colors"
-  echo "  -t,--test <file>     Print full colors from (Xresources format) file"
-  echo "  -s,--system          Print full current system (Xresources) colors"
-  echo "  -f,--file <file>     Print compact colors from (Xresources format) file"
-  echo "  -d,--diff            Print compact differences between the (hardcoded) test colors and current system (Xresources) colors"
-  echo "  -d,--diff <file>     Print compact differences between the (hardcoded) test colors, current system (Xresources) colors, and colors from (Xresources format) file"
-  echo "  -n,--najib           Print Najib's color scheme"
+  echo "  -h,--help                   Print this help"
+  echo "  -t,--test                   Print full (hardcoded) test colors"
+  echo "  -t,--test <file>            Print full colors from (Xresources"
+  echo "                              format) file"
+  echo "  -s,--system                 Print full current system (Xresources)"
+  echo "                              colors"
+  echo "  -f,--file <file>            Print compact colors from (Xresources"
+  echo "                              format) file"
+  echo "  -d,--diff                   Print compact differences between the"
+  echo "                              (hardcoded) test colors and current"
+  echo "                              system (Xresources) colors"
+  echo "  -d,--diff <file>            Print compact differences between the"
+  echo "                              (hardcoded) test colors, current system"
+  echo "                              (Xresources) colors, and colors from"
+  echo "                              (Xresources format) file"
+  echo "  -d,--diff <file> <file>     Print compact differences between the"
+  echo "                              (hardcoded) test colors, current system"
+  echo "                              (Xresources) colors, and colors from two"
+  echo "                              (Xresources format) files"
+  echo "  -n,--najib                  Print Najib's color scheme"
   echo ""
 }
 
@@ -920,10 +987,16 @@ case $1 in
     fi
     ;;
   --diff|-d)
-    if [ -z "$2" ]; then
+    #if [ -z "$2" ]; then
+    if [[ $# -eq 1 || -z $2 ]]; then
       printTestcolorVsSystemColor
-    else
+    #else
+    elif [[ $# -eq 2 || -z $3 ]]; then
       printTestcolorfileVsSystemColor "$2"
+    elif [[ $# -eq 3 && ! -z $2 && ! -z $3 ]]; then
+      printTestcolorfileVsSystemColor "$2" "$3"
+    else
+      printUsage
     fi
     ;;
   -n|--najib)
